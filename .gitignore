@@ -3,3 +3,6 @@
 *.pyc
 .ipynb_checkpoints
 venv
+
+# Paramaters learned for Assignment 1 word vectors
+saved_params_*.npy
