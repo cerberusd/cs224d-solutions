@@ -7,9 +7,9 @@ set -x
 ###################
 
 # training params
-epochs=30
+epochs=${NEPOCH:-30}
 step=1e-2
-wvecDim=30
+wvecDim=${WVECDIM:-30}
 
 # for RNN2 only, otherwise doesnt matter
 middleDim=25
@@ -30,6 +30,5 @@ fi
 echo $outfile
 
 
-python runNNet.py --step $step --epochs $epochs --outFile $outfile \
-                --middleDim $middleDim --outputDim 5 --wvecDim $wvecDim --model $model 
-
+python -u runNNet.py --step $step --epochs $epochs --outFile $outfile \
+                --middleDim $middleDim --outputDim 5 --wvecDim $wvecDim --model $model

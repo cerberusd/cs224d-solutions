@@ -13,6 +13,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pdb
 
+# Helper to generate a confusion matrix
+from sklearn.metrics import confusion_matrix
+
 
 # This is the main training function of the codebase. You are intended to run this function via command line
 # or by ./run.sh
@@ -64,7 +67,8 @@ def run(args=None):
 
     # Testing
     if opts.test:
-        test(opts.inFile,opts.data,opts.model)
+        cmfile = opts.inFile + ".confusion_matrix-" + opts.data + ".png"
+        test(opts.inFile,opts.data,opts.model,confusion_matrix_file=cmfile)
         return
     
     print "Loading data..."
@@ -120,13 +124,22 @@ def run(args=None):
 
 
     if evaluate_accuracy_while_training:
-        pdb.set_trace()
+        # pdb.set_trace()
         print train_accuracies
         print dev_accuracies
-        # TODO:
         # Plot train/dev_accuracies here?
+        plt.figure()
+        plt.plot(range(len(train_accuracies)), train_accuracies, label='Train')
+        plt.plot(range(len(dev_accuracies)), dev_accuracies, label='Dev')
+        plt.xlabel("Epoch")
+        plt.ylabel("Accuracy")
+        plt.legend()
+        # plot.show()
+        plt.savefig(opts.outFile + ".accuracy_plot.png")
 
-def test(netFile,dataSet, model='RNN', trees=None):
+        
+
+def test(netFile, dataSet, model='RNN', trees=None, confusion_matrix_file=None):
     if trees==None:
         trees = tr.loadTrees(dataSet)
     assert netFile is not None, "Must give model to test"
@@ -154,21 +167,21 @@ def test(netFile,dataSet, model='RNN', trees=None):
 
     print "Testing %s..."%model
 
-    cost,correct, guess, total = nn.costAndGrad(trees,test=True)
+    cost, correct, guess, total = nn.costAndGrad(trees,test=True)
     correct_sum = 0
     for i in xrange(0,len(correct)):        
         correct_sum+=(guess[i]==correct[i])
     
-    # TODO
-    # Plot the confusion matrix?
-
-    
+    # Generate confusion matrix
+    if confusion_matrix_file is not None:
+        cm = confusion_matrix(correct, guess)
+        makeconf(cm, confusion_matrix_file)
     
     print "Cost %f, Acc %f"%(cost,correct_sum/float(total))
     return correct_sum/float(total)
 
 
-def makeconf(conf_arr):
+def makeconf(conf_arr, outfile):
     # makes a confusion matrix plot when provided a matrix conf_arr
     norm_conf = []
     for i in conf_arr:
@@ -200,8 +213,8 @@ def makeconf(conf_arr):
     plt.xticks(range(width), indexs[:width])
     plt.yticks(range(height), indexs[:height])
     # you can save the figure here with:
-    # plt.savefig("pathname/image.png")
-
+    plt.savefig(outfile)
+    print "Confusion Matrix written to %s" % outfile
     plt.show()
 
 
