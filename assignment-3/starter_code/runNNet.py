@@ -14,7 +14,7 @@ import numpy as np
 import pdb
 
 
-# This is the main training function of the codebase. You are intended to run this function via command line 
+# This is the main training function of the codebase. You are intended to run this function via command line
 # or by ./run.sh
 
 # You should update run.sh accordingly before you run it!

@@ -104,7 +104,33 @@ class RNN:
         #     (we will use both correct and guess to make our confusion matrix)
         ################
 
+        # Recursion
+        if not node.isLeaf:
+            left_cost, left_total = self.forwardProp(node.left, correct, guess)
+            right_cost, right_total = self.forwardProp(node.right, correct, guess)
+            cost += (left_cost + right_cost)
+            total += (left_total + right_total)
+            # Compute hidden layer 1 (taken from lecture slides)
+            node.hActs1 = np.dot(self.W, np.hstack([node.left.hActs1, node.right.hActs1])) + self.b
+            # ReLU
+            node.hActs1[node.hActs1 < 0] = 0
+        else:
+            node.hActs1 = self.L[:,node.word]
+
+
+        # Softmax (taken from lecture slides)
+        node.probs = np.dot(self.Ws, node.hActs1) + self.bs
+        node.probs -= np.max(node.probs)
+        node.probs = np.exp(node.probs)
+        node.probs = node.probs/np.sum(node.probs)
+
+        # Calculate cross entropy cost
+        guess.append(np.argmax(node.probs))
+        correct.append(node.label)
+        cost += -np.log(node.probs[node.label])
         
+        # We performed forward propagation
+        node.fprop = True
 
         return cost, total + 1
 
@@ -120,6 +146,34 @@ class RNN:
         #  - node: your current node in the parse tree
         #  - error: error that has been passed down from a previous iteration
         ################
+
+        # Taken from lecture slides:
+
+        # Softmax grad
+        deltas = node.probs
+        deltas[node.label] -= 1.0
+        self.dWs += np.outer(deltas, node.hActs1)
+        self.dbs += deltas
+        deltas = np.dot(self.Ws.T, deltas)
+
+        # Add deltas from above
+        if error is not None:
+            deltas += error
+
+        deltas *= (node.hActs1 != 0)
+
+        if node.isLeaf:
+            self.dL[node.word] += deltas
+            return
+
+        # Update word vectors if leaf node
+        if not node.isLeaf:
+            self.dW += np.outer(deltas, np.hstack([node.left.hActs1, node.right.hActs1]))
+            self.db += deltas
+            # Error signal to children
+            deltas = np.dot(self.W.T, deltas)
+            self.backProp(node.left, deltas[:self.wvecDim])
+            self.backProp(node.right, deltas[self.wvecDim:])
 
 
         
