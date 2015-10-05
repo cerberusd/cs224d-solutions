@@ -112,7 +112,6 @@ class RNN:
             total += (left_total + right_total)
             # Compute hidden layer 1 (taken from lecture slides)
             node.hActs1 = np.dot(self.W, np.hstack([node.left.hActs1, node.right.hActs1])) + self.b
-            # ReLU
             node.hActs1[node.hActs1 < 0] = 0
         else:
             node.hActs1 = self.L[:,node.word]
