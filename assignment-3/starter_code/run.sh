@@ -12,9 +12,9 @@ step=1e-2
 wvecDim=${WVECDIM:-30}
 
 # for RNN2 only, otherwise doesnt matter
-middleDim=25
+middleDim=${MIDDLEDIM:-30}
 
-model="RNN" #either RNN, RNN2, RNN3, RNTN, or DCNN
+model="RNN2" #either RNN, RNN2, RNN3, RNTN, or DCNN
 
 
 ######################################################## 

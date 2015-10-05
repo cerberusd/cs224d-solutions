@@ -112,8 +112,36 @@ class RNN2:
 
     def forwardProp(self,node, correct=[], guess=[]):
         cost  =  total = 0.0
-        # this is exactly the same setup as forwardProp in rnn.py
+
+        # Recursion
+        if not node.isLeaf:
+            left_cost, left_total = self.forwardProp(node.left, correct, guess)
+            right_cost, right_total = self.forwardProp(node.right, correct, guess)
+            cost += (left_cost + right_cost)
+            total += (left_total + right_total)
+            # Compute hidden layer 1
+            node.hActs1 = np.dot(self.W1, np.hstack([node.left.hActs1, node.right.hActs1])) + self.b1
+            node.hActs1[node.hActs1 < 0] = 0
+        else:
+            node.hActs1 = self.L[:,node.word]
+
+        # Compute hidden layer 2
+        node.hActs2 = np.dot(self.W2, node.hActs1) + self.b2
+        node.hActs2[node.hActs2 < 0] = 0
+
+        # Softmax (taken from lecture slides)
+        node.probs = np.dot(self.Ws, node.hActs2) + self.bs
+        node.probs -= np.max(node.probs)
+        node.probs = np.exp(node.probs)
+        node.probs = node.probs/np.sum(node.probs)
+
+        # Calculate cross entropy cost
+        guess.append(np.argmax(node.probs))
+        correct.append(node.label)
+        cost += -np.log(node.probs[node.label])
         
+        # We performed forward propagation
+        node.fprop = True
 
         return cost, total + 1
 
@@ -122,9 +150,40 @@ class RNN2:
         # Clear nodes
         node.fprop = False
 
-        # this is exactly the same setup as backProp in rnn.py
-        
-        
+        # Softmax grad
+        deltas = node.probs
+        deltas[node.label] -= 1.0
+        self.dWs += np.outer(deltas, node.hActs2)
+        self.dbs += deltas
+
+        # Delta 3
+        deltas = np.dot(self.Ws.T, deltas)
+        deltas *= (node.hActs2 != 0)
+
+        # Layer 2 grad
+        self.dW2 += np.outer(deltas, node.hActs1)
+        self.db2 += deltas
+
+        # Delta2
+        deltas = np.dot(self.W2.T, deltas)
+        # Add deltas from above
+        if error is not None:
+            deltas += error
+        deltas *= (node.hActs1 != 0)
+
+        if node.isLeaf:
+            self.dL[node.word] += deltas
+            return
+
+        # Update word vectors if leaf node
+        if not node.isLeaf:
+            self.dW1 += np.outer(deltas, np.hstack([node.left.hActs1, node.right.hActs1]))
+            self.db1 += deltas
+            # Error signal to children
+            deltas = np.dot(self.W1.T, deltas)
+            self.backProp(node.left, deltas[:self.wvecDim])
+            self.backProp(node.right, deltas[self.wvecDim:])        
+
 
         
     def updateParams(self,scale,update,log=False):
